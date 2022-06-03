@@ -11,19 +11,24 @@ import (
 	logr "github.com/sirupsen/logrus"
 )
 
-func (check *HealthCheck) ParseCommandLineArguments(brokerHost string,brokerID uint,brokerPort uint,statusServerPort uint,zookeeperConnect string,topicName string,replicationTopicName string,replicationFailureThreshold uint,CheckInterval time.Duration,NoTopicCreation bool){
-
-	check.config.brokerHost = brokerHost
-	check.config.brokerID = brokerID
-	check.config.brokerPort = brokerPort
-	check.config.statusServerPort = statusServerPort
-	check.config.zookeeperConnect = zookeeperConnect
-	check.config.topicName = topicName
-	check.config.replicationTopicName = replicationTopicName
-	check.config.replicationFailureThreshold = replicationFailureThreshold
-	check.config.CheckInterval = CheckInterval
-	check.config.NoTopicCreation = NoTopicCreation
-
+// ParseCommandLineArguments parses the command line arguments.
+func (check *HealthCheck) ParseCommandLineArguments() {
+	flag.StringVar(&check.config.brokerHost, "broker-host", "localhost", "ip address or hostname of broker host")
+	flag.UintVar(&check.config.brokerID, "broker-id", 0, "id of the Kafka broker to health check")
+	flag.UintVar(&check.config.brokerPort, "broker-port", 9092, "Kafka broker port")
+	flag.StringVar(&check.config.brokerCACertPath, "broker-ca-cert", "", "Kafka broker TLS CA certificate path")
+	flag.StringVar(&check.config.brokerClientCertPath, "broker-client-cert", "", "Kafka broker TLS client certificate path")
+	flag.StringVar(&check.config.brokerClientKeyPath, "broker-client-key", "", "Kafka broker TLS client key path")
+	flag.UintVar(&check.config.statusServerPort, "server-port", 8000, "port to open for http health status queries")
+	flag.StringVar(&check.config.zookeeperConnect, "zookeeper", "", "ZooKeeper connect string (e.g. node1:2181,node2:2181,.../chroot)")
+	flag.StringVar(&check.config.topicName, "topic", "", "name of the topic to use - use one per broker, defaults to broker-<id>-health-check")
+	flag.StringVar(&check.config.replicationTopicName, "replication-topic", "",
+		"name of the topic to use for replication checks - use one per cluster, defaults to broker-replication-check")
+	flag.UintVar(&check.config.replicationFailureThreshold, "replication-failures-count", 5,
+		"number of replication failures before broker is reported unhealthy")
+	flag.DurationVar(&check.config.CheckInterval, "check-interval", 10*time.Second, "how frequently to perform health checks")
+	flag.BoolVar(&check.config.NoTopicCreation, "no-topic-creation", false, "disable automatic topic creation and deletion")
+	flag.Parse()
 	l := log.New(os.Stderr, "", 0)
 	valid := check.validateConfig(l)
 	if !valid {

@@ -40,8 +40,12 @@ func (check *HealthCheck) tryConnectOnce(createBrokerTopic, createReplicationTop
 	// connect to kafka cluster
 	connectString := []string{fmt.Sprintf("%s:%d", check.config.brokerHost, check.config.brokerPort)}
 
-	log.Println("connectString " + connectString[0])
-	err := check.broker.Dial(connectString, check.brokerConfig())
+	brokerConfig, err := check.brokerConfig()
+	if err != nil {
+
+	}
+
+	err = check.broker.Dial(connectString, brokerConfig)
 	if err != nil {
 		log.Printf("unable to connect to broker, retrying in %s (%s)", pauseTime.String(), err)
 		return err
@@ -126,6 +130,7 @@ func findTopic(name string, metadata *proto.MetadataResp) (*proto.MetadataRespTo
 			return &topic, true
 		}
 	}
+
 	return nil, false
 }
 
@@ -178,7 +183,8 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 
 	if !exists {
 		topicConfig := `{"version":1,"config":{"delete.retention.ms":"10000",` +
-			`"cleanup.policy":"delete","compression.type":"uncompressed"}}`
+			`"cleanup.policy":"delete","compression.type":"uncompressed",` +
+			`"min.insync.replicas":"1"}}`
 		log.Infof(`creating topic "%s" configuration node`, name)
 
 		if err = createZkNode(zkConn, topicPath, topicConfig, forHealthCheck); err != nil {
